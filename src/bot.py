@@ -111,6 +111,7 @@ async def _proceed_message(text: str):
 @user_moderation()
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
+    logger.info('%s asks: %s' % (update.effective_user.username, update.message.text))
     reply = await _proceed_message(update.message.text)
     await reply.send_reply(update)
 
@@ -159,7 +160,7 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         tmp_file.close()  # закрываем файл, чтоб его увидел ffmpeg
 
         text = await audio_to_text(open(tmp_file.name, "rb"))
-        print(text)
+        logger.info('%s asks: %s' % (update.effective_user.username, update.message.text))
         reply = await _proceed_message(text)
         await reply.send_reply(update)
     finally:
