@@ -160,7 +160,7 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         tmp_file.close()  # закрываем файл, чтоб его увидел ffmpeg
 
         text = await audio_to_text(open(tmp_file.name, "rb"))
-        logger.info('%s asks: %s' % (update.effective_user.username, update.message.text))
+        logger.info('%s asks: %s' % (update.effective_user.username, text))
         reply = await _proceed_message(text)
         await reply.send_reply(update)
     finally:
