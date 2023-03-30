@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "gopobot"
+version = "0.1.0"
+description = ""
+authors = ["Mikhail Makeev <mihail.makeev@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-telegram-bot = "^20.1"
+openai = "^0.27.2"
+pillow = "^9.4.0"
+redis = "^4.5.4"
+python-dotenv = "^1.0.0"
+pydub = "^0.25.1"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+isort = "^5.12.0"
+poethepoet = "^0.19.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+preview = true
+
+[tool.poe.tasks]
+isort = "isort ."
+black = "black ."
+format = ["isort", "black"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::RuntimeWarning",
+]
