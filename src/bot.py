@@ -51,10 +51,6 @@ def user_moderation():
                 await update.message.reply_text("Вы превысили лимит сообщений")
                 return
 
-            if update.effective_user.id not in settings.ADMIN_USERS:
-                await update.message.reply_text("Вы не в списке разрешенных пользователей")
-                return
-
             await r.incr(key)
             return await func(update, context)
 
