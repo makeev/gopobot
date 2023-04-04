@@ -93,6 +93,8 @@ class Reply:
 async def _proceed_message(text: str):
     try:
         if "нарису" in text.lower() or "рисуй" in text.lower():
+            words = text.lower().split()
+            text = " ".join(words[1:])
             img_url = await create_image(text)
             if not img_url:
                 return Reply(data="Не получилось нарисовать", type="text")
