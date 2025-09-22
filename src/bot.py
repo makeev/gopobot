@@ -10,6 +10,7 @@ from telegram import __version__ as TG_VER
 import settings
 from ai import audio_to_text, create_chat_response, create_image, determine_image
 from images import resize_image_bytes
+from history import history_manager
 
 openai.api_key = settings.OPENAI_API_KEY
 
@@ -71,7 +72,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Спроси меня что-то или попроси нарисовать")
+    help_text = """Команды бота:
+/start - Начать работу с ботом
+/help - Показать справку
+/reset - Очистить историю сообщений
+
+Возможности:
+• Задавать вопросы (бот запоминает контекст разговора)
+• Просить нарисовать что-то (начни с "нарисуй" или "рисуй")
+• Отправлять голосовые сообщения
+• Отправлять геолокацию
+
+Для сброса истории можно написать: "сброс", "забудь", "очисти историю" или использовать команду /reset"""
+    await update.message.reply_text(help_text)
+
+
+async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Команда для сброса истории сообщений"""
+    await history_manager.clear_history(update.effective_user.id)
+    await update.message.reply_text("История сообщений очищена!")
 
 
 @dataclass
@@ -86,8 +105,12 @@ class Reply:
             await update.message.reply_photo(photo=self.data)
 
 
-async def _proceed_message(text: str):
+async def _proceed_message(text: str, user_id: int):
     try:
+        if await history_manager.should_reset_history(text):
+            await history_manager.clear_history(user_id)
+            return Reply(data="История сообщений очищена", type="text")
+
         if "нарису" in text.lower() or "рисуй" in text.lower():
             words = text.lower().split()
             text = " ".join(words[1:])
@@ -97,7 +120,7 @@ async def _proceed_message(text: str):
             else:
                 return Reply(data=img_url, type="image")
         else:
-            answer = await create_chat_response(text)
+            answer = await create_chat_response(text, user_id)
             if not answer:
                 return Reply(data="Гопоту заклинило, попробуйте позже", type="text")
             else:
@@ -110,7 +133,7 @@ async def _proceed_message(text: str):
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
     logger.info('%s asks: %s' % (update.effective_user.username, update.message.text))
-    reply = await _proceed_message(update.message.text)
+    reply = await _proceed_message(update.message.text, update.effective_user.id)
     await reply.send_reply(update)
 
 
@@ -135,7 +158,8 @@ async def location_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """Echo the user message."""
     location = update.message.location
     reply = await create_chat_response(
-        f"Где находятся координаты и список достопримечательностей рядом: {location.latitude}, {location.longitude}"
+        f"Где находятся координаты и список достопримечательностей рядом: {location.latitude}, {location.longitude}",
+        update.effective_user.id
     )
 
     if not reply:
@@ -159,7 +183,7 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         text = await audio_to_text(open(tmp_file.name, "rb"))
         logger.info('%s asks: %s' % (update.effective_user.username, text))
-        reply = await _proceed_message(text)
+        reply = await _proceed_message(text, update.effective_user.id)
         await reply.send_reply(update)
     finally:
         # delete tmp_file
@@ -174,6 +198,7 @@ def main() -> None:
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("reset", reset_command))
 
     # on non command i.e message - echo the message on Telegram
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))

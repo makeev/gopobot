@@ -1,25 +1,36 @@
 import os
 import tempfile
 from pathlib import Path
+from typing import List, Dict
 
 import openai
 from pydub import AudioSegment
 
+from history import history_manager
 
-async def create_chat_response(prompt):
+
+async def create_chat_response(prompt: str, user_id: int):
+    await history_manager.add_message(user_id, "user", prompt)
+
+    history = await history_manager.get_messages(user_id)
+
+    if not history:
+        history = [{"role": "user", "content": prompt}]
+
     response = await openai.ChatCompletion.acreate(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "assistant", "content": prompt},
-        ],
+        model="gpt-4.1-nano-2025-04-14",
+        messages=history,
         temperature=0.2,
-        max_tokens=4000,
+        max_tokens=32768,
         top_p=1.0,
         frequency_penalty=0.2,
         presence_penalty=0.0,
     )
+
     if response and hasattr(response, "choices") and len(response.choices) > 0:
-        return response.choices[0].message.content.strip()
+        assistant_message = response.choices[0].message.content.strip()
+        await history_manager.add_message(user_id, "assistant", assistant_message)
+        return assistant_message
 
 
 async def create_image(prompt):
@@ -42,12 +53,12 @@ async def edit_image(img_bytes, prompt):
 
 async def determine_image(img_bytes):
     response = await openai.ChatCompletion.acreate(
-        model="gpt-3.5-turbo",
+        model="gpt-4.1-nano-2025-04-14",
         messages=[
             {"role": "assistant", "content": "Что изображено на картинке: %s" % img_bytes},
         ],
         temperature=0.2,
-        max_tokens=100,
+        max_tokens=1000,
         top_p=1.0,
         frequency_penalty=0.2,
         presence_penalty=0.0,
