@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - gopobot_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  gopobot:
+    image: mmakeev/gopobot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - TOKEN=${TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ADMIN_USERS=${ADMIN_USERS}
+      - REDIS_URL=redis://redis:6379
+      - LIMIT_TIME=${LIMIT_TIME:-3600}
+      - LIMIT_MESSAGES=${LIMIT_MESSAGES:-50}
+      - MAX_HISTORY_MESSAGES=${MAX_HISTORY_MESSAGES:-10}
+    depends_on:
+      - redis
+    networks:
+      - gopobot_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+
+networks:
+  gopobot_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis_data:
+    driver: local
