@@ -1,6 +1,5 @@
 import io
 
-import openai
 from PIL import Image
 
 

@@ -3,7 +3,6 @@ import os
 import tempfile
 from dataclasses import dataclass
 
-import openai
 import redis.asyncio as redis
 from telegram import __version__ as TG_VER
 
@@ -11,8 +10,6 @@ import settings
 from ai import audio_to_text, create_chat_response, create_image, determine_image
 from images import resize_image_bytes
 from history import history_manager
-
-openai.api_key = settings.OPENAI_API_KEY
 
 try:
     from telegram import __version_info__
