@@ -92,7 +92,7 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 @dataclass
 class Reply:
-    data: str
+    data: str | bytes
     type: str
 
     async def send_reply(self, update: Update):
@@ -111,11 +111,11 @@ async def _proceed_message(text: str, user_id: int):
         if "нарису" in text.lower() or "рисуй" in text.lower():
             words = text.lower().split()
             text = " ".join(words[1:])
-            img_url = await create_image(text)
-            if not img_url:
+            img_bytes = await create_image(text)
+            if not img_bytes:
                 return Reply(data="Не получилось нарисовать", type="text")
             else:
-                return Reply(data=img_url, type="image")
+                return Reply(data=img_bytes, type="image")
         else:
             answer = await create_chat_response(text, user_id)
             if not answer:

@@ -1,3 +1,4 @@
+import base64
 import os
 import tempfile
 
@@ -35,13 +36,21 @@ async def create_chat_response(prompt: str, user_id: int):
 
 
 async def create_image(prompt):
-    response = await client.images.generate(prompt=prompt, n=1, size="1024x1024")
+    # gpt-image модели возвращают только b64_json, поэтому отдаем байты картинки
+    response = await client.images.generate(
+        model="gpt-image-1.5",
+        prompt=prompt,
+        n=1,
+        size="1024x1024",
+        quality="medium",
+    )
     if response and response.data and len(response.data) > 0:
-        return response.data[0].url
+        return base64.b64decode(response.data[0].b64_json)
 
 
 async def edit_image(img_bytes, prompt):
     r = await client.images.edit(
+        model="gpt-image-1.5",
         image=img_bytes,
         # mask=open("mask.png", "rb"),
         prompt=prompt,
@@ -49,7 +58,7 @@ async def edit_image(img_bytes, prompt):
         size="1024x1024",
     )
     if r and r.data and len(r.data) > 0:
-        return r.data[0].url
+        return base64.b64decode(r.data[0].b64_json)
 
 
 async def determine_image(img_bytes):
