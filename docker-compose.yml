@@ -11,7 +11,11 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        # `any`, not `on-failure` (2026-07-27): on a graceful node restart redis
+        # exits 0, and with `on-failure` swarm treats that as "nothing to do" —
+        # no replacement task is ever scheduled. That is exactly how a 9-second
+        # manager reboot on 2026-07-26 left this service down for 13 hours.
+        condition: any
         delay: 5s
         max_attempts: 3
       resources:
@@ -40,7 +44,8 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        # `any` for the same reason as redis above.
+        condition: any
         delay: 10s
         max_attempts: 5
       resources:
