@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:7-alpine
@@ -8,6 +6,11 @@ services:
       - redis_data:/data
     networks:
       - gopobot_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     deploy:
       replicas: 1
       restart_policy:
@@ -25,7 +28,7 @@ services:
           memory: 128M
 
   gopobot:
-    image: mmakeev/gopobot:latest
+    image: ${GOPOBOT_IMAGE:-mmakeev/gopobot:latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -34,9 +37,27 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ADMIN_USERS=${ADMIN_USERS}
       - REDIS_URL=redis://redis:6379
-      - LIMIT_TIME=${LIMIT_TIME:-3600}
-      - LIMIT_MESSAGES=${LIMIT_MESSAGES:-50}
-      - MAX_HISTORY_MESSAGES=${MAX_HISTORY_MESSAGES:-10}
+      - LIMIT_TIME=${LIMIT_TIME:-86400}
+      - LIMIT_MESSAGES=${LIMIT_MESSAGES:-20}
+      - TEXT_REQUEST_COST=${TEXT_REQUEST_COST:-1}
+      - IMAGE_REQUEST_COST=${IMAGE_REQUEST_COST:-5}
+      - PHOTO_REQUEST_COST=${PHOTO_REQUEST_COST:-2}
+      - VOICE_REQUEST_COST=${VOICE_REQUEST_COST:-2}
+      - CHAT_MODEL=${CHAT_MODEL:-gpt-5.6-luna}
+      - IMAGE_MODEL=${IMAGE_MODEL:-gpt-image-2}
+      - TRANSCRIPTION_MODEL=${TRANSCRIPTION_MODEL:-gpt-4o-mini-transcribe}
+      - OPENAI_TIMEOUT=${OPENAI_TIMEOUT:-120}
+      - OPENAI_MAX_RETRIES=${OPENAI_MAX_RETRIES:-2}
+      - MAX_OUTPUT_TOKENS=${MAX_OUTPUT_TOKENS:-1200}
+      - SYSTEM_PROMPT=${SYSTEM_PROMPT:-}
+      - MAX_HISTORY_MESSAGES=${MAX_HISTORY_MESSAGES:-100}
+      - HISTORY_CONTEXT_MESSAGES=${HISTORY_CONTEXT_MESSAGES:-20}
+      - HISTORY_SUMMARY_TRIGGER=${HISTORY_SUMMARY_TRIGGER:-30}
+      - HISTORY_TTL=${HISTORY_TTL:-2592000}
+      - GROUP_MODE=${GROUP_MODE:-mentions}
+      - LOG_USER_CONTENT=${LOG_USER_CONTENT:-false}
+      - LOCATION_RADIUS_KM=${LOCATION_RADIUS_KM:-3}
+      - LOCATION_WEB_SEARCH=${LOCATION_WEB_SEARCH:-true}
     depends_on:
       - redis
     networks:
@@ -59,7 +80,10 @@ services:
         parallelism: 1
         delay: 10s
         failure_action: rollback
-        order: start-first
+        # Telegram long polling допускает только одного активного получателя
+        # обновлений с одним токеном.
+        order: stop-first
+    stop_grace_period: 30s
 
 networks:
   gopobot_network:

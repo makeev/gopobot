@@ -1,18 +1,23 @@
 FROM python:3.12-slim
 
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir uv \
+    && groupadd --system bot \
+    && useradd --system --gid bot --home-dir /app bot
 
 COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-RUN pip install uv && \
-    uv sync --frozen
+COPY --chown=bot:bot src/ ./src/
 
-COPY src/ ./src/
+USER bot
 
-EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD ["python", "-m", "src.healthcheck"]
 
-CMD ["uv", "run", "python", "src/bot.py"]
+CMD ["python", "-m", "src.bot"]

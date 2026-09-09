@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 .idea
@@ -7,3 +9,6 @@
 *.pyc
 *.ipynb
 /dist/
+
+# Local agent instructions, never published
+CLAUDE.md

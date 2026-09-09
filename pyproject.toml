@@ -1,14 +1,32 @@
 [project]
 name = "gopobot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Русскоязычный мультимодальный Telegram-бот на OpenAI API"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "openai>=1.108.1",
-    "pillow>=11.3.0",
-    "pydub>=0.25.1",
     "python-dotenv>=1.1.1",
     "python-telegram-bot>=22.4",
     "redis>=6.4.0",
 ]
+
+[dependency-groups]
+dev = [
+    "fakeredis>=2.31.0",
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.12.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
